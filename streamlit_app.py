@@ -1,22 +1,18 @@
-
 import streamlit as st
 import os
 from groq import Groq
 import random
-
 from langchain.chains import ConversationChain
 from langchain.chains.conversation.memory import ConversationBufferWindowMemory
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
-import os 
 
+# Load the API key from the environment variable
 load_dotenv()
-
-groq_api_key = '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'
+groq_api_key = os.environ.get('GROQ_API_KEY')
 
 def main():
-
     st.title("FastChat App")
 
     # Add customization options to the sidebar
@@ -25,36 +21,43 @@ def main():
         'Choose a model',
         ['mixtral-8x7b-32768', 'llama2-70b-4096']
     )
-    conversational_memory_length = st.sidebar.slider('Conversational memory length:', 1, 10, value = 5)
-
-    memory=ConversationBufferWindowMemory(k=conversational_memory_length)
+    conversational_memory_length = st.sidebar.slider('Conversational memory length:', 1, 10, value=5)
+    memory = ConversationBufferWindowMemory(k=conversational_memory_length)
 
     user_question = st.text_area("Ask a question:")
 
+    # Button to submit the question
+    submit_button = st.button("Submit")
+
+    # Dropdown to select the chat history length
+    chat_history_length = st.sidebar.selectbox("Chat history length", [5, 10, 20], index=0)
+
     # session state variable
     if 'chat_history' not in st.session_state:
-        st.session_state.chat_history=[]
+        st.session_state.chat_history = []
     else:
-        for message in st.session_state.chat_history:
-            memory.save_context({'input':message['human']},{'output':message['AI']})
-
+        for message in st.session_state.chat_history[-chat_history_length:]:
+            memory.save_context({'input': message['human']}, {'output': message['AI']})
 
     # Initialize Groq Langchain chat object and conversation
     groq_chat = ChatGroq(
-            groq_api_key=groq_api_key, 
-            model_name=model
+        groq_api_key=groq_api_key,
+        model_name=model
     )
 
     conversation = ConversationChain(
-            llm=groq_chat,
-            memory=memory
+        llm=groq_chat,
+        memory=memory
     )
 
-    if user_question:
-        response = conversation(user_question)
-        message = {'human':user_question,'AI':response['response']}
-        st.session_state.chat_history.append(message)
-        st.write("Chatbot:", response['response'])
+    if user_question and submit_button:
+        try:
+            response = conversation(user_question)
+            message = {'human': user_question, 'AI': response['response']}
+            st.session_state.chat_history.append(message)
+            st.write("Chatbot:", response['response'])
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
 
 if __name__ == "__main__":
     main()
