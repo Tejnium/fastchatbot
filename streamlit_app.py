@@ -17,7 +17,7 @@ groq_api_key = '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'
 
 def main():
 
-    st.title("Groq Chat App")
+    st.title("FastChat App")
 
     # Add customization options to the sidebar
     st.sidebar.title('Select an LLM')
